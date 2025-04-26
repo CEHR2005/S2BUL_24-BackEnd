@@ -27,7 +27,7 @@ def get_movie_statistics(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Movie not found",
         )
-    
+
     # Get basic rating statistics
     basic_stats = (
         db.query(
@@ -37,54 +37,54 @@ def get_movie_statistics(
         .filter(Rating.movie_id == movie_id)
         .first()
     )
-    
+
     # Get age statistics
     age_stats = (
         db.query(
-            func.sum(case([(User.age < 18, 1)], else_=0)).label("under18"),
-            func.sum(case([(and_(User.age >= 18, User.age <= 24), 1)], else_=0)).label("age18to24"),
-            func.sum(case([(and_(User.age >= 25, User.age <= 34), 1)], else_=0)).label("age25to34"),
-            func.sum(case([(and_(User.age >= 35, User.age <= 44), 1)], else_=0)).label("age35to44"),
-            func.sum(case([(and_(User.age >= 45, User.age <= 54), 1)], else_=0)).label("age45to54"),
-            func.sum(case([(User.age >= 55, 1)], else_=0)).label("age55plus")
+            func.sum(case((User.age < 18, 1), else_=0)).label("under18"),
+            func.sum(case((and_(User.age >= 18, User.age <= 24), 1), else_=0)).label("age18to24"),
+            func.sum(case((and_(User.age >= 25, User.age <= 34), 1), else_=0)).label("age25to34"),
+            func.sum(case((and_(User.age >= 35, User.age <= 44), 1), else_=0)).label("age35to44"),
+            func.sum(case((and_(User.age >= 45, User.age <= 54), 1), else_=0)).label("age45to54"),
+            func.sum(case((User.age >= 55, 1), else_=0)).label("age55plus")
         )
         .join(Rating, Rating.user_id == User.id)
         .filter(Rating.movie_id == movie_id)
         .first()
     )
-    
+
     # Get gender statistics
     gender_stats = (
         db.query(
-            func.sum(case([(User.gender == "male", 1)], else_=0)).label("male"),
-            func.sum(case([(User.gender == "female", 1)], else_=0)).label("female"),
-            func.sum(case([(User.gender == "other", 1)], else_=0)).label("other"),
-            func.sum(case([(or_(
+            func.sum(case((User.gender == "male", 1), else_=0)).label("male"),
+            func.sum(case((User.gender == "female", 1), else_=0)).label("female"),
+            func.sum(case((User.gender == "other", 1), else_=0)).label("other"),
+            func.sum(case((or_(
                 and_(User.gender != "male", User.gender != "female", User.gender != "other"),
                 User.gender == None
-            ), 1)], else_=0)).label("not_specified")
+            ), 1), else_=0)).label("not_specified")
         )
         .join(Rating, Rating.user_id == User.id)
         .filter(Rating.movie_id == movie_id)
         .first()
     )
-    
+
     # Get continent statistics
     continent_stats = (
         db.query(
-            func.sum(case([(User.continent == "africa", 1)], else_=0)).label("africa"),
-            func.sum(case([(User.continent == "asia", 1)], else_=0)).label("asia"),
-            func.sum(case([(User.continent == "europe", 1)], else_=0)).label("europe"),
-            func.sum(case([(User.continent == "north_america", 1)], else_=0)).label("north_america"),
-            func.sum(case([(User.continent == "south_america", 1)], else_=0)).label("south_america"),
-            func.sum(case([(User.continent == "australia", 1)], else_=0)).label("australia"),
-            func.sum(case([(User.continent == "antarctica", 1)], else_=0)).label("antarctica")
+            func.sum(case((User.continent == "africa", 1), else_=0)).label("africa"),
+            func.sum(case((User.continent == "asia", 1), else_=0)).label("asia"),
+            func.sum(case((User.continent == "europe", 1), else_=0)).label("europe"),
+            func.sum(case((User.continent == "north_america", 1), else_=0)).label("north_america"),
+            func.sum(case((User.continent == "south_america", 1), else_=0)).label("south_america"),
+            func.sum(case((User.continent == "australia", 1), else_=0)).label("australia"),
+            func.sum(case((User.continent == "antarctica", 1), else_=0)).label("antarctica")
         )
         .join(Rating, Rating.user_id == User.id)
         .filter(Rating.movie_id == movie_id)
         .first()
     )
-    
+
     # Get country statistics
     country_stats_query = (
         db.query(
@@ -97,12 +97,12 @@ def get_movie_statistics(
         .group_by(User.country)
         .all()
     )
-    
+
     country_stats = {}
     for country, count in country_stats_query:
         if country:
             country_stats[country] = count
-    
+
     # Prepare the response
     return {
         "movie_id": movie_id,
