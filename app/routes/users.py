@@ -1,4 +1,5 @@
 from typing import Any, List
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -41,7 +42,7 @@ def update_user(
             )
 
     # Update user attributes
-    for field, value in user_in.dict(exclude_unset=True).items():
+    for field, value in user_in.model_dump(exclude_unset=True).items():
         setattr(current_user, field, value)
 
     db.add(current_user)
@@ -60,12 +61,21 @@ def get_user_by_id(
     """
     Get a specific user by id.
     """
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
+    try:
+        # Convert string to UUID object before querying
+        uuid_obj = uuid.UUID(user_id)
+        user = db.query(User).filter(User.id == uuid_obj).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        # Convert UUID to string to match Pydantic model expectations
+        user.id = str(user.id)
+        return user
+    except ValueError:
+        # Handle invalid UUID format
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user ID format",
         )
-    # Convert UUID to string to match Pydantic model expectations
-    user.id = str(user.id)
-    return user

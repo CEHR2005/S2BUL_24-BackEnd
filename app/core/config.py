@@ -1,5 +1,6 @@
 import os
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 
 class Settings(BaseSettings):
     # API settings
@@ -24,7 +25,6 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in cors_origins.split(",")]
         return ["http://localhost:5173"]  # Default Frontend Vite port
 
-    class Config:
-        env_file = ".env"
+    model_config = ConfigDict(env_file=".env")
 
 settings = Settings()

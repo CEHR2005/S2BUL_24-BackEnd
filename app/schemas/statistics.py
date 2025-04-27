@@ -1,5 +1,5 @@
 from typing import Dict
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel, RootModel, ConfigDict
 
 class AgeStatistics(BaseModel):
     under18: int = 0
@@ -36,5 +36,4 @@ class MovieStatistics(BaseModel):
     continent_statistics: ContinentStatistics
     country_statistics: CountryStatistics
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

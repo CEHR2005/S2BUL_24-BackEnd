@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 
 # Shared properties
 class UserBase(BaseModel):
@@ -17,7 +17,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
-    @validator('password')
+    @field_validator('password', mode='before')
     def password_min_length(cls, v):
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters long')
@@ -40,8 +40,7 @@ class User(UserBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Properties to return via API for login
 class UserLogin(BaseModel):

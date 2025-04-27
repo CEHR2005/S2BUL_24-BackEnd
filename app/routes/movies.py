@@ -1,6 +1,8 @@
 from typing import Any, List, Optional
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import String
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_active_user
@@ -30,7 +32,9 @@ def get_movies(
     if title:
         query = query.filter(Movie.title.ilike(f"%{title}%"))
     if genre:
-        query = query.filter(Movie.genre.any(genre))
+        # For SQLite, we need to filter differently since arrays are stored as JSON strings
+        # This approach works for both SQLite and PostgreSQL
+        query = query.filter(Movie.genre.cast(String).like(f"%{genre}%"))
     if director:
         query = query.filter(Movie.director.ilike(f"%{director}%"))
     if year:
@@ -90,16 +94,25 @@ def get_movie(
     """
     Get movie by ID.
     """
-    movie = db.query(Movie).filter(Movie.id == movie_id).first()
-    if not movie:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Movie not found",
-        )
+    try:
+        # Convert string to UUID object before querying
+        uuid_obj = uuid.UUID(movie_id)
+        movie = db.query(Movie).filter(Movie.id == uuid_obj).first()
+        if not movie:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Movie not found",
+            )
 
-    # Convert UUID to string to match Pydantic model expectations
-    movie.id = str(movie.id)
-    return movie
+        # Convert UUID to string to match Pydantic model expectations
+        movie.id = str(movie.id)
+        return movie
+    except ValueError:
+        # Handle invalid UUID format
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid movie ID format",
+        )
 
 @router.put("/{movie_id}", response_model=MovieSchema)
 def update_movie(
@@ -119,24 +132,33 @@ def update_movie(
             detail="Not enough permissions",
         )
 
-    movie = db.query(Movie).filter(Movie.id == movie_id).first()
-    if not movie:
+    try:
+        # Convert string to UUID object before querying
+        uuid_obj = uuid.UUID(movie_id)
+        movie = db.query(Movie).filter(Movie.id == uuid_obj).first()
+        if not movie:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Movie not found",
+            )
+
+        # Update movie attributes
+        for field, value in movie_in.model_dump(exclude_unset=True).items():
+            setattr(movie, field, value)
+
+        db.add(movie)
+        db.commit()
+        db.refresh(movie)
+
+        # Convert UUID to string to match Pydantic model expectations
+        movie.id = str(movie.id)
+        return movie
+    except ValueError:
+        # Handle invalid UUID format
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Movie not found",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid movie ID format",
         )
-
-    # Update movie attributes
-    for field, value in movie_in.dict(exclude_unset=True).items():
-        setattr(movie, field, value)
-
-    db.add(movie)
-    db.commit()
-    db.refresh(movie)
-
-    # Convert UUID to string to match Pydantic model expectations
-    movie.id = str(movie.id)
-    return movie
 
 @router.delete("/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_movie(
@@ -155,12 +177,21 @@ def delete_movie(
             detail="Not enough permissions",
         )
 
-    movie = db.query(Movie).filter(Movie.id == movie_id).first()
-    if not movie:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Movie not found",
-        )
+    try:
+        # Convert string to UUID object before querying
+        uuid_obj = uuid.UUID(movie_id)
+        movie = db.query(Movie).filter(Movie.id == uuid_obj).first()
+        if not movie:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Movie not found",
+            )
 
-    db.delete(movie)
-    db.commit()
+        db.delete(movie)
+        db.commit()
+    except ValueError:
+        # Handle invalid UUID format
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid movie ID format",
+        )
