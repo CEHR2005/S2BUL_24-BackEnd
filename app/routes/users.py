@@ -16,7 +16,18 @@ def get_current_user(
     current_user: User = Depends(get_current_active_user),
 ) -> Any:
     """
-    Get current user.
+    Provides an endpoint to retrieve the currently authenticated user's
+    information in a format compatible with the defined Pydantic schema.
+    The `id` attribute of the user object is converted to a string prior to
+    return to meet schema expectations.
+
+    Args:
+        current_user: The currently authenticated user object, resolved
+                      using the dependency injection of `get_current_active_user`.
+
+    Returns:
+        The authenticated user's information matching the `UserSchema`
+        response model.
     """
     # Convert UUID to string to match Pydantic model expectations
     current_user.id = str(current_user.id)
@@ -30,7 +41,27 @@ def update_user(
     current_user: User = Depends(get_current_active_user),
 ) -> Any:
     """
-    Update current user.
+    Update the details of the currently authenticated user.
+
+    Checks if the username is being updated and confirms it is not already taken
+    by another user. Updates the attributes of the current user with the provided
+    data and commits the changes to the database. Returns the updated user details.
+
+    Parameters:
+    db: Session
+        The SQLAlchemy database session used to interact with the database.
+    user_in: UserUpdate
+        The Pydantic model representing the fields to be updated for the user.
+    current_user: User
+        The currently authenticated active user retrieved from the request context.
+
+    Returns:
+    Any
+        The updated user details as a response model.
+
+    Raises:
+    HTTPException
+        If the provided username is already taken by another user.
     """
     # Check if username is being updated and if it's already taken
     if user_in.username and user_in.username != current_user.username:
@@ -59,7 +90,19 @@ def get_user_by_id(
     db: Session = Depends(get_db),
 ) -> Any:
     """
-    Get a specific user by id.
+    Fetch a user by their unique ID.
+
+    This function retrieves a user from the database using their unique user ID.
+    The user ID is expected to be in UUID format. If the ID is not found,
+    an HTTP 404 error is raised. If the ID format is invalid, an HTTP 400
+    error is raised.
+
+    Args:
+        user_id (str): The unique identifier of the user in UUID format.
+        db (Session): A SQLAlchemy database session dependency.
+
+    Returns:
+        Any: The user record matching the provided user ID.
     """
     try:
         # Convert string to UUID object before querying

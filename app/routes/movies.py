@@ -2,7 +2,7 @@ from typing import Any, List, Optional
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import String
+from sqlalchemy import String, or_
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_active_user
@@ -24,7 +24,23 @@ def get_movies(
     year: Optional[int] = None,
 ) -> Any:
     """
-    Retrieve movies with optional filtering.
+    Retrieves a list of movies from the database with optional filtering and pagination.
+
+    Filters can be applied based on movie title, genre, director, and year of release. Provides
+    support for query pagination through the 'skip' and 'limit' parameters.
+
+    Args:
+        db (Session): The database session dependency.
+        skip (int): The number of records to skip for pagination. Defaults to 0.
+        limit (int): The maximum number of records to return. Defaults to 100.
+        title (Optional[str]): The full or partial title of the movie to filter by. Defaults to None.
+        genre (Optional[str]): The genre of the movie to filter by. Defaults to None.
+        director (Optional[str]): The name of the movie's director to filter by. Defaults to None.
+        year (Optional[int]): The release year of the movie to filter by. Defaults to None.
+
+    Returns:
+        Any: A list of movies matching the applied filters and pagination criteria, with UUIDs
+        converted to strings for compatibility with the response model.
     """
     query = db.query(Movie)
 
@@ -57,7 +73,23 @@ def create_movie(
     current_user: User = Depends(get_current_active_user),
 ) -> Any:
     """
-    Create new movie.
+    Handles the creation of a new movie entity through a POST request.
+
+    Only users with admin privileges are authorized to use this endpoint.
+    Upon successful creation, the movie is stored in the database, and its
+    details are returned as a response.
+
+    Arguments:
+        db: Database session dependency used for interacting with the
+            database.
+        movie_in: Data required to create a new movie, provided in the
+            request body and validated against the `MovieCreate` schema.
+        current_user: The currently authenticated user, verified to ensure
+            they possess admin privileges.
+
+    Returns:
+        A dictionary object of the created movie, including its ID and other
+        attributes, as derived from the response model `MovieSchema`.
     """
     # Only admin users can create movies
     if not current_user.is_admin:
@@ -92,7 +124,25 @@ def get_movie(
     movie_id: str,
 ) -> Any:
     """
-    Get movie by ID.
+    Retrieves a movie by its unique identifier (UUID). This function queries the database
+    for a movie matching the provided UUID. If a movie is found, it is returned with its
+    UUID converted to a string to conform to the expected Pydantic model format.
+    If the movie does not exist or the provided UUID format is invalid, an HTTPException
+    is raised.
+
+    Parameters:
+        db: Session
+            The database session dependency used for querying the database.
+        movie_id: str
+            The unique identifier (UUID in string format) of the movie to retrieve.
+
+    Returns:
+        MovieSchema
+            The movie data matching the given movie ID.
+
+    Raises:
+        HTTPException
+            If the movie ID is invalid or the requested movie is not found in the database.
     """
     try:
         # Convert string to UUID object before querying
@@ -123,7 +173,16 @@ def update_movie(
     current_user: User = Depends(get_current_active_user),
 ) -> Any:
     """
-    Update a movie.
+    Updates an existing movie in the database based on its ID. This endpoint is restricted to admin users only. It allows an administrator to change various fields of a movie by providing the updated data. If the movie does not exist or the provided ID format is invalid, appropriate HTTP errors are raised.
+
+    Parameters:
+        db (Session): The SQLAlchemy database session dependency, used to query and update the database.
+        movie_id (str): The unique identifier of the movie to be updated, provided as a string. It should match the UUID format.
+        movie_in (MovieUpdate): An object containing the updated movie data. Only the fields that are provided will be updated.
+        current_user (User): The currently authenticated user, obtained through the dependency mechanism. Used to check if the user has admin privileges.
+
+    Returns:
+        Any: The updated movie object as defined by the MovieSchema, converted to match Pydantic model expectations.
     """
     # Only admin users can update movies
     if not current_user.is_admin:
@@ -168,7 +227,21 @@ def delete_movie(
     current_user: User = Depends(get_current_active_user),
 ) -> None:
     """
-    Delete a movie.
+    Deletes a specific movie from the database. This operation is restricted to
+    admin users only. It requires a valid movie ID, the database session, and the
+    authenticated user information. If the ID is invalid, not found, or if the
+    user lacks the necessary permissions, appropriate HTTP exceptions with status
+    codes are raised.
+
+    Args:
+        db (Session): The database session dependency for database operations.
+        movie_id (str): The unique identifier of the movie to delete in UUID format.
+        current_user (User): The currently authenticated user invoking the operation.
+
+    Raises:
+        HTTPException: A 403 Forbidden error if the user is not an admin.
+        HTTPException: A 404 Not Found error if the movie does not exist.
+        HTTPException: A 400 Bad Request error if the movie ID format is invalid.
     """
     # Only admin users can delete movies
     if not current_user.is_admin:

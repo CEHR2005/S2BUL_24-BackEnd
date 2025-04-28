@@ -16,7 +16,27 @@ router = APIRouter()
 @router.post("/register", response_model=UserSchema)
 def register(*, db: Session = Depends(get_db), user_in: UserCreate) -> Any:
     """
-    Register a new user.
+    Handles user registration by creating a new user in the database if the provided
+    email and username are not already associated with an existing account. Performs
+    validations to ensure the uniqueness of email and username, hashes the user's
+    password, and stores the new user details.
+
+    Args:
+        db (Session): A database session dependency that provides access to the
+            database operations.
+        user_in (UserCreate): Pydantic model that holds the user input data for
+            creating a new user. Expects attributes like username, email, password,
+            first_name, last_name, age, gender, country, and continent.
+
+    Raises:
+        HTTPException: If a user with the provided email already exists. Responds with
+            HTTP 400 status and an appropriate error message.
+        HTTPException: If a user with the provided username already exists. Responds
+            with HTTP 400 status and an appropriate error message.
+
+    Returns:
+        Any: A Pydantic schema representation of the newly created user, including all
+            user details (except sensitive ones like the unencrypted password).
     """
     # Check if user with this email already exists
     user = db.query(User).filter(User.email == user_in.email).first()
@@ -59,7 +79,25 @@ def login(
     db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
     """
-    OAuth2 compatible token login, get an access token for future requests.
+    Handles the user login process by authenticating via email or username and password.
+    If the authentication is successful, it generates and returns a new access token.
+
+    Parameters:
+    db: Session
+        The database session dependency required to query the database.
+    form_data: OAuth2PasswordRequestForm
+        The form data containing the login credentials, specifically the username
+        (used interchangeably for email or username) and password.
+
+    Returns:
+    Any
+        Returns a dictionary containing the JSON Web Token (JWT) as 'access_token'
+        and the token type as 'bearer'.
+
+    Raises:
+    HTTPException
+        Raises HTTP 401 Unauthorized if the email/username does not exist in the
+        database or the provided password is incorrect.
     """
     # Try to find user by email
     user = db.query(User).filter(User.email == form_data.username).first()

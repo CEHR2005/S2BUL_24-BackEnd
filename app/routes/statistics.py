@@ -18,7 +18,25 @@ def get_movie_statistics(
     db: Session = Depends(get_db),
 ) -> Any:
     """
-    Get detailed statistics for a movie.
+    Fetches statistical data related to a specific movie, such as its rating statistics, demographic user data, and global
+    distribution of user ratings. The function retrieves statistics such as average rating, number of ratings,
+    distribution of user ages, genders, continents, and countries. The data is retrieved from the database
+    and formatted into a comprehensive response.
+
+    Parameters:
+        movie_id (str): The unique identifier of the movie for which statistics are being retrieved.
+        db (Session): The database session used to query data. This is provided via dependency injection.
+
+    Returns:
+        Any: A dictionary containing detailed statistical data associated with the specified movie, including:
+            - Average rating and total number of ratings.
+            - Age group statistics.
+            - Gender-based statistics.
+            - Continent-based user statistics.
+            - Country-based user statistics.
+
+    Raises:
+        HTTPException: If the specified movie does not exist in the database (HTTP status code 404).
     """
     # Check if movie exists
     movie = db.query(Movie).filter(Movie.id == movie_id).first()

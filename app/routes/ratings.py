@@ -21,7 +21,23 @@ def get_ratings_by_movie(
     limit: int = 100,
 ) -> Any:
     """
-    Get all ratings for a movie.
+    Fetches the ratings for a specific movie, including related user information,
+    with optional pagination support. Organizes the ratings and user attributes into
+    a structured response format.
+
+    Args:
+        movie_id (str): The ID of the movie to retrieve ratings for.
+        db (Session, optional): The database session dependency used for querying.
+        skip (int, optional): The number of records to skip for pagination. Default is 0.
+        limit (int, optional): The maximum number of records to return for pagination.
+            Default is 100.
+
+    Returns:
+        Any: A list of ratings for the specified movie, with each rating containing
+        related user information.
+
+    Raises:
+        HTTPException: If the movie with the specified ID is not found in the database.
     """
     # Check if movie exists
     movie = db.query(Movie).filter(Movie.id == movie_id).first()
@@ -71,7 +87,22 @@ def get_movie_rating_stats(
     db: Session = Depends(get_db),
 ) -> Any:
     """
-    Get rating statistics for a movie.
+    Retrieves the statistics for a specific movie, including the average rating
+    and the total number of ratings. This function requires a valid movie ID
+    and a database session.
+
+    Parameters:
+        movie_id (str): The unique identifier of the movie for which rating
+            statistics are to be retrieved.
+        db (Session): The database session dependency used to query movie and
+            rating data.
+
+    Returns:
+        dict: A dictionary containing the movie's ID, its average score, and
+            the total number of ratings.
+
+    Raises:
+        HTTPException: If the specified movie is not found in the database.
     """
     # Check if movie exists
     movie = db.query(Movie).filter(Movie.id == movie_id).first()
@@ -105,7 +136,21 @@ def create_or_update_rating(
     current_user: User = Depends(get_current_active_user),
 ) -> Any:
     """
-    Create or update a rating.
+    Creates or updates a rating for a movie. If the movie exists and the user has not
+    already rated it, a new rating is created. If a rating by the user for the movie
+    already exists, the score is updated. Responds with the updated or created
+    rating. Handles database interactions, including committing and refreshing
+    entities. Converts UUIDs to strings to ensure compatibility with the Pydantic
+    schema.
+
+    Args:
+        db (Session): The database session.
+        rating_in (RatingCreate): The input data for creating or updating a rating.
+        current_user (User): The currently authenticated user.
+
+    Returns:
+        Any: The created or updated rating object matching the defined Pydantic response
+        schema.
     """
     # Check if movie exists
     movie = db.query(Movie).filter(Movie.id == rating_in.movie_id).first()
@@ -162,7 +207,28 @@ def delete_rating(
     current_user: User = Depends(get_current_active_user),
 ) -> None:
     """
-    Delete a rating.
+    Deletes a rating by its unique identifier.
+
+    This endpoint allows an authenticated user to delete a rating if they are
+    either the author of the rating or have administrative privileges. If the
+    rating cannot be found, the function raises an exception.
+
+    Parameters:
+        db: Session
+            The database session dependency.
+        rating_id: str
+            The unique identifier of the rating to be deleted.
+        current_user: User
+            The currently authenticated user.
+
+    Raises:
+        HTTPException
+            If the rating cannot be found, a 404 error is raised.
+            If the user lacks the necessary permissions to delete the rating,
+            a 403 error is raised.
+
+    Returns:
+        None
     """
     rating = db.query(Rating).filter(Rating.id == rating_id).first()
     if not rating:
