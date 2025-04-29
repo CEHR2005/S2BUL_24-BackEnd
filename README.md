@@ -249,6 +249,4 @@ movie-rating-api/
 └── requirements.txt          # Project dependencies
 ```
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+Advanced Programming_S2BUL_24. st2218026. Arsentii Bieliaiev
