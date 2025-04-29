@@ -90,13 +90,13 @@ def get_movie_statistics(
     # Get continent statistics
     continent_stats = (
         db.query(
-            func.sum(case((User.continent == "africa", 1), else_=0)).label("africa"),
-            func.sum(case((User.continent == "asia", 1), else_=0)).label("asia"),
-            func.sum(case((User.continent == "europe", 1), else_=0)).label("europe"),
-            func.sum(case((User.continent == "north_america", 1), else_=0)).label("north_america"),
-            func.sum(case((User.continent == "south_america", 1), else_=0)).label("south_america"),
-            func.sum(case((User.continent == "australia", 1), else_=0)).label("australia"),
-            func.sum(case((User.continent == "antarctica", 1), else_=0)).label("antarctica")
+            func.sum(case((User.continent == "AF", 1), else_=0)).label("africa"),
+            func.sum(case((User.continent == "AS", 1), else_=0)).label("asia"),
+            func.sum(case((User.continent == "EU", 1), else_=0)).label("europe"),
+            func.sum(case((User.continent == "NA", 1), else_=0)).label("north_america"),
+            func.sum(case((User.continent == "SA", 1), else_=0)).label("south_america"),
+            func.sum(case((User.continent == "AU", 1), else_=0)).label("australia"),
+            func.sum(case((User.continent == "AN", 1), else_=0)).label("antarctica")
         )
         .join(Rating, Rating.user_id == User.id)
         .filter(Rating.movie_id == movie_id)

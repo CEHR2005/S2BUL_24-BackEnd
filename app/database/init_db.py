@@ -32,7 +32,7 @@ def create_test_users(db: Session):
                 age=30,
                 gender="Male",
                 country="USA",
-                continent="North America",
+                continent="NA",
                 is_admin=True
             ),
             User(
@@ -45,7 +45,7 @@ def create_test_users(db: Session):
                 age=25,
                 gender="Male",
                 country="UK",
-                continent="Europe"
+                continent="EU"
             ),
             User(
                 id=uuid.uuid4(),
@@ -57,7 +57,7 @@ def create_test_users(db: Session):
                 age=28,
                 gender="Female",
                 country="Canada",
-                continent="North America"
+                continent="NA"
             ),
             User(
                 id=uuid.uuid4(),
@@ -69,7 +69,7 @@ def create_test_users(db: Session):
                 age=22,
                 gender="Female",
                 country="Australia",
-                continent="Oceania"
+                continent="OC"
             ),
             User(
                 id=uuid.uuid4(),
@@ -81,7 +81,7 @@ def create_test_users(db: Session):
                 age=35,
                 gender="Male",
                 country="Germany",
-                continent="Europe"
+                continent="EU"
             )
         ]
 

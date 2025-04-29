@@ -2,12 +2,13 @@ from typing import Any, List, Optional
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import String, or_
+from sqlalchemy import String, or_, func, and_
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_active_user
 from app.database.database import get_db
 from app.models.movie import Movie
+from app.models.rating import Rating
 from app.models.user import User
 from app.schemas.movie import Movie as MovieSchema, MovieCreate, MovieUpdate
 
@@ -22,12 +23,13 @@ def get_movies(
     genre: Optional[str] = None,
     director: Optional[str] = None,
     year: Optional[int] = None,
+    rating: Optional[float] = None,
 ) -> Any:
     """
     Retrieves a list of movies from the database with optional filtering and pagination.
 
-    Filters can be applied based on movie title, genre, director, and year of release. Provides
-    support for query pagination through the 'skip' and 'limit' parameters.
+    Filters can be applied based on movie title, genre, director, year of release, and minimum rating.
+    Provides support for query pagination through the 'skip' and 'limit' parameters.
 
     Args:
         db (Session): The database session dependency.
@@ -37,6 +39,7 @@ def get_movies(
         genre (Optional[str]): The genre of the movie to filter by. Defaults to None.
         director (Optional[str]): The name of the movie's director to filter by. Defaults to None.
         year (Optional[int]): The release year of the movie to filter by. Defaults to None.
+        rating (Optional[float]): The minimum average rating of the movie to filter by. Defaults to None.
 
     Returns:
         Any: A list of movies matching the applied filters and pagination criteria, with UUIDs
@@ -50,11 +53,37 @@ def get_movies(
     if genre:
         # For SQLite, we need to filter differently since arrays are stored as JSON strings
         # This approach works for both SQLite and PostgreSQL
-        query = query.filter(Movie.genre.cast(String).like(f"%{genre}%"))
+        query = query.filter(Movie.genre.cast(String).ilike(f"%{genre}%"))
     if director:
         query = query.filter(Movie.director.ilike(f"%{director}%"))
     if year:
         query = query.filter(Movie.release_year == year)
+
+    # Apply rating filter if provided
+    if rating is not None:
+        # Create a subquery to calculate average ratings for each movie
+        rating_subquery = (
+            db.query(
+                Rating.movie_id,
+                func.avg(Rating.score).label("avg_rating")
+            )
+            .group_by(Rating.movie_id)
+            .subquery()
+        )
+
+        # Left outer join with the rating subquery and filter by minimum rating
+        # This ensures movies without ratings are still included when appropriate
+        query = query.outerjoin(
+            rating_subquery,
+            Movie.id == rating_subquery.c.movie_id
+        ).filter(
+            # Include movies with ratings >= specified value OR movies with no ratings (when rating = 0)
+            or_(
+                rating_subquery.c.avg_rating >= rating,
+                # If rating is 0, include movies with no ratings (NULL avg_rating)
+                and_(rating == 0, rating_subquery.c.avg_rating.is_(None))
+            )
+        )
 
     # Apply pagination
     movies = query.offset(skip).limit(limit).all()
